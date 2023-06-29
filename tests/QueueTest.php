@@ -42,7 +42,7 @@ class QueueTest extends TestCase
 
         // Assert
         CloudTasksApi::assertTaskCreated(function (Task $task): bool {
-            return $task->getHttpRequest()->getUrl() === 'http://docker.for.mac.localhost:8080/handle-task';
+            return $task->getHttpRequest()->getUrl() === 'https://docker.for.mac.localhost:8080/handle-task';
         });
     }
 
@@ -69,7 +69,7 @@ class QueueTest extends TestCase
     public function it_posts_to_the_correct_handler_url()
     {
         // Arrange
-        $this->setConfigValue('handler', 'http://docker.for.mac.localhost:8081');
+        $this->setConfigValue('handler', 'https://docker.for.mac.localhost:8081');
         CloudTasksApi::fake();
 
         // Act
@@ -77,7 +77,7 @@ class QueueTest extends TestCase
 
         // Assert
         CloudTasksApi::assertTaskCreated(function (Task $task): bool {
-            return $task->getHttpRequest()->getUrl() === 'http://docker.for.mac.localhost:8081/handle-task';
+            return $task->getHttpRequest()->getUrl() === 'https://docker.for.mac.localhost:8081/handle-task';
         });
     }
 
@@ -242,7 +242,7 @@ class QueueTest extends TestCase
 
         // Assert
         Event::assertNotDispatched($this->getJobReleasedAfterExceptionEvent());
-        CloudTasksApi::assertDeletedTaskCount(1);
+        CloudTasksApi::assertDeletedTaskCount(0); // it returned 200 OK so we dont delete it, but Google does
         $releasedJob = null;
         Event::assertDispatched(JobReleased::class, function (JobReleased $event) use (&$releasedJob) {
             $releasedJob = $event->job;
@@ -257,7 +257,7 @@ class QueueTest extends TestCase
 
         $this->runFromPayload($releasedJob->getRawBody());
 
-        CloudTasksApi::assertDeletedTaskCount(2);
+        CloudTasksApi::assertDeletedTaskCount(0);
         CloudTasksApi::assertTaskCreated(function (Task $task) {
             $body = $task->getHttpRequest()->getBody();
             $decoded = json_decode($body, true);
@@ -476,6 +476,26 @@ class QueueTest extends TestCase
 
         // Act
         Log::assertLogged('UserJob:John');
-        CloudTasksApi::assertTaskDeleted($job->task->getName());
+        CloudTasksApi::assertTaskNotDeleted($job->task->getName());
+    }
+
+    /**
+     * @test
+     */
+    public function it_adds_a_task_name_based_on_the_display_name()
+    {
+        // Arrange
+        CloudTasksApi::fake();
+        Carbon::setTestNow(Carbon::create(2023, 6, 1, 20, 2, 37));
+
+        // Act
+        $this->dispatch((new SimpleJob()));
+
+        // Assert
+        CloudTasksApi::assertTaskCreated(function (Task $task, string $queueName): bool {
+            $uuid = \Safe\json_decode($task->getHttpRequest()->getBody(), true)['uuid'];
+
+            return $task->getName() === 'projects/my-test-project/locations/europe-west6/queues/barbequeue/tasks/Tests-Support-SimpleJob-' . $uuid . '-1685649757';
+        });
     }
 }

@@ -4,6 +4,46 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## 3.5.1 - 2023-05-27
+
+**Changed**
+
+- Bumped PHPSeclib from 2.x to 3.x
+
+**Fixed**
+
+- Fixed #104
+
+## 3.5.0 - 2023-04-09
+
+**Added**
+
+- Added more descriptive job names in Cloud Tasks (thanks @i386 #100)
+
+## 3.4.1 - 2023-02-17
+
+**Fixed**
+
+- Fixed #95
+
+## 3.4.0 - 2023-02-08
+
+**Changed**
+
+- Added support for Laravel 10
+
+## 3.3.2 - 2022-11-19
+
+**Changed**
+
+- Added helpful message if application generates unsafe http handler URL due to potentially TrustedProxies not being configured.
+
+## 3.3.1 - 2022-10-22
+
+**Fixed**
+
+- Fixes [#73](https://github.com/stackkit/laravel-google-cloud-tasks-queue/issues/73) Cannot access protected property Illuminate\Queue\Jobs\SyncJob::$job
+
 ## 3.3.0 - 2022-10-15
 
 **Added**

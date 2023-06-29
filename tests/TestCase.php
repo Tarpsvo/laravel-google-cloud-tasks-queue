@@ -101,7 +101,7 @@ class TestCase extends \Orchestra\Testbench\TestCase
             'queue' => 'barbequeue',
             'project' => 'my-test-project',
             'location' => 'europe-west6',
-            'handler' => env('CLOUD_TASKS_HANDLER', 'http://docker.for.mac.localhost:8080'),
+            'handler' => env('CLOUD_TASKS_HANDLER', 'https://docker.for.mac.localhost:8080'),
             'service_account_email' => 'info@stackkit.io',
         ]);
         $app['config']->set('queue.failed.driver', 'database-uuids');
@@ -109,7 +109,8 @@ class TestCase extends \Orchestra\Testbench\TestCase
 
         $disableDashboardPrefix = 'when_dashboard_is_disabled';
 
-        if (substr($this->getName(), 0, strlen($disableDashboardPrefix)) === $disableDashboardPrefix) {
+        $testName = method_exists($this, 'name') ? $this->name() : $this->getName();
+        if (substr($testName, 0, strlen($disableDashboardPrefix)) === $disableDashboardPrefix) {
             $app['config']->set('cloud-tasks.dashboard.enabled', false);
         } else {
             $app['config']->set('cloud-tasks.dashboard.enabled', true);
@@ -132,7 +133,8 @@ class TestCase extends \Orchestra\Testbench\TestCase
             $payloadAsArray = json_decode($payload, true);
             $task = $event->task;
 
-            request()->headers->set('X-Cloudtasks-Taskname', $task->getName());
+            [,,,,,,,$taskName] = explode('/', $task->getName());
+            request()->headers->set('X-Cloudtasks-Taskname', $taskName);
         });
 
         dispatch($job);
@@ -216,7 +218,7 @@ class TestCase extends \Orchestra\Testbench\TestCase
     {
         $base = [
             'iss' => 'https://accounts.google.com',
-            'aud' => 'http://docker.for.mac.localhost:8080',
+            'aud' => 'https://docker.for.mac.localhost:8080',
             'exp' => time() + 10,
         ];
 

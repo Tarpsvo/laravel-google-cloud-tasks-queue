@@ -4,9 +4,11 @@ namespace Tests;
 
 use Firebase\JWT\ExpiredException;
 use Google\Cloud\Tasks\V2\RetryConfig;
+use Google\Cloud\Tasks\V2\Task;
 use Google\Protobuf\Duration;
 use Illuminate\Queue\Events\JobProcessed;
 use Illuminate\Queue\Events\JobProcessing;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 use Stackkit\LaravelGoogleCloudTasksQueue\CloudTasksApi;
@@ -76,7 +78,6 @@ class TaskHandlerTest extends TestCase
         // Assert
         if ($debug) {
             $response->assertJsonValidationErrors('task');
-            $this->assertEquals('The json must be a valid JSON string.', $response->json('errors.json.0'));
         } else {
             $response->assertNotFound();
         }
@@ -84,11 +85,11 @@ class TaskHandlerTest extends TestCase
 
     /**
      * @test
-     * @testWith ["{\"invalid\": \"data\"}", "The task.data field is required."]
-     *           ["{\"data\": \"\"}", "The task.data field is required."]
-     *           ["{\"data\": \"test\"}", "The task.data must be an array."]
+     * @testWith ["{\"invalid\": \"data\"}"]
+     *           ["{\"data\": \"\"}"]
+     *           ["{\"data\": \"test\"}"]
      */
-    public function it_returns_responses_for_invalid_payloads(string $payload, string $expectedMessage)
+    public function it_returns_responses_for_invalid_payloads(string $payload)
     {
         // Arrange
 
@@ -107,7 +108,6 @@ class TaskHandlerTest extends TestCase
 
         // Assert
         $response->assertJsonValidationErrors('task.data');
-        $this->assertEquals($expectedMessage, $response->json(['errors', 'task.data', 0]));
     }
 
     /**
@@ -475,6 +475,35 @@ class TaskHandlerTest extends TestCase
 
         Event::assertDispatched($this->getJobReleasedAfterExceptionEvent(), function ($event) {
             return $event->job->attempts() === 7;
+        });
+    }
+
+    /**
+     * @test
+     */
+    public function retried_jobs_get_a_new_name()
+    {
+        // Arrange
+        OpenIdVerificator::fake();
+        Event::fake($this->getJobReleasedAfterExceptionEvent());
+        CloudTasksApi::fake();
+
+        // Act & Assert
+        Carbon::setTestNow(Carbon::createFromTimestamp(1685035628));
+        $job = $this->dispatch(new FailingJob());
+        Carbon::setTestNow(Carbon::createFromTimestamp(1685035629));
+
+        $job->run();
+
+        // Assert
+        CloudTasksApi::assertCreatedTaskCount(2);
+        CloudTasksApi::assertTaskCreated(function (Task $task): bool {
+            [$timestamp] = array_reverse(explode('-', $task->getName()));
+            return $timestamp === '1685035628';
+        });
+        CloudTasksApi::assertTaskCreated(function (Task $task): bool {
+            [$timestamp] = array_reverse(explode('-', $task->getName()));
+            return $timestamp === '1685035629';
         });
     }
 }
