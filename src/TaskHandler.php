@@ -132,6 +132,18 @@ class TaskHandler
             $taskName,
         );
 
+        $data = [
+            'fullTaskName' => $fullTaskName,
+            'project' => $this->config['project'],
+            'location' => $this->config['location'],
+            'queue' => $job->getQueue() ?: $this->config['queue'],
+            'jobGetQueue' => $job->getQueue(),
+            'configQueue' => $this->config['queue'],
+            'taskName' => $taskName,
+        ];
+
+        \Log::info('handleTask debug: ' . json_encode($data), $data);
+
         try {
             $apiTask = CloudTasksApi::getTask($fullTaskName);
         } catch (ApiException $e) {
