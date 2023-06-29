@@ -86,11 +86,10 @@ class TaskHandler
         try {
             $validator->validate();
         } catch (ValidationException $e) {
-            report($e);
             if (config('app.debug')) {
                 throw $e;
             } else {
-                abort(416);
+                abort(404);
             }
         }
 
@@ -135,9 +134,8 @@ class TaskHandler
         try {
             $apiTask = CloudTasksApi::getTask($fullTaskName);
         } catch (ApiException $e) {
-            report($e);
             if (in_array($e->getStatus(), ['NOT_FOUND', 'PRECONDITION_FAILED'])) {
-                abort(415);
+                abort(404);
             }
 
             throw $e;

@@ -167,7 +167,7 @@ class CloudTasksQueue extends LaravelQueue implements QueueContract
 
         $token = new OidcToken;
         $token->setServiceAccountEmail($this->config['service_account_email']);
-        $token->setAudience($this->config['handler']);
+        $token->setAudience($this->getHandler());
         $httpRequest->setOidcToken($token);
 
         if ($availableAt > time()) {
